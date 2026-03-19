@@ -148,25 +148,35 @@ async function main() {
 		});
 		console.log(`Pipeline started (token: ${token})`);
 
-		// Build File objects for upload — notebooks are converted to markdown,
+		// Upload files via data pipes — notebooks are converted to markdown,
 		// other files are read as-is with appropriate MIME types.
-		const files = contentPaths.map((filePath) => {
-			const { name, content, mime } = readForUpload(filePath);
-			const file = new File([content], name, { type: mime });
-			return { file };
-		});
+		const encoder = new TextEncoder();
+		let succeeded = 0;
+		let failed = 0;
+		const MAX_CONCURRENT = 5;
 
-		console.log(`Uploading ${files.length} files...`);
-		const results = await client.sendFiles(files, token, 5);
-		const succeeded = results.filter((r) => r.action === 'complete').length;
-		const failed = results.filter((r) => r.action === 'error').length;
-		console.log(`Upload complete: ${succeeded} succeeded, ${failed} failed`);
-
-		if (failed > 0) {
-			for (const r of results.filter((r) => r.action === 'error')) {
-				console.error(`  Failed: ${r.filepath} — ${r.error}`);
+		console.log(`Uploading ${contentPaths.length} files...`);
+		for (let i = 0; i < contentPaths.length; i += MAX_CONCURRENT) {
+			const batch = contentPaths.slice(i, i + MAX_CONCURRENT);
+			const results = await Promise.allSettled(
+				batch.map(async (filePath) => {
+					const { name, content, mime } = readForUpload(filePath);
+					const pipe = await client.pipe(token, { filename: name }, mime);
+					await pipe.open();
+					await pipe.write(encoder.encode(content));
+					return pipe.close();
+				}),
+			);
+			for (const r of results) {
+				if (r.status === 'fulfilled') {
+					succeeded++;
+				} else {
+					failed++;
+					console.error(`  Failed: ${r.reason}`);
+				}
 			}
 		}
+		console.log(`Upload complete: ${succeeded} succeeded, ${failed} failed`);
 
 		// Poll until pipeline finishes processing
 		console.log('Waiting for vectorization to complete...');
