@@ -1,5 +1,6 @@
 import React from 'react';
 import BrowserOnly from '@docusaurus/BrowserOnly';
+import ErrorBoundary from '@site/src/components/ErrorBoundary';
 
 export default function Root({ children }) {
   return (
@@ -8,7 +9,11 @@ export default function Root({ children }) {
       <BrowserOnly>
         {() => {
           const Chatbot = require('@site/src/components/Chatbot').default;
-          return <Chatbot />;
+          return (
+            <ErrorBoundary>
+              <Chatbot />
+            </ErrorBoundary>
+          );
         }}
       </BrowserOnly>
     </>
