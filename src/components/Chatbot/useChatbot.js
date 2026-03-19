@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import { WEBHOOK_URL, WEBHOOK_PK, WEBHOOK_TOKEN } from '@site/src/lib/webhook';
+import { getWebhookConfig } from '@site/src/lib/webhook';
 
 export default function useChatbot() {
   const { siteConfig } = useDocusaurusContext();
@@ -16,6 +16,8 @@ export default function useChatbot() {
     async (text) => {
       if (!text.trim() || !apiKeyConfigured) return;
 
+      const { url, pk, token } = getWebhookConfig(siteConfig.customFields);
+
       const userMessage = { role: 'user', content: text.trim() };
       setMessages((prev) => [...prev, userMessage]);
       setError(null);
@@ -28,11 +30,11 @@ export default function useChatbot() {
         // Add placeholder for assistant response
         setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
-        const response = await fetch(`${WEBHOOK_URL}?token=${WEBHOOK_TOKEN}`, {
+        const response = await fetch(`${url}?token=${token}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
-            'Authorization': WEBHOOK_PK,
+            'Authorization': pk,
           },
           body: text.trim(),
           signal: controller.signal,
@@ -73,7 +75,7 @@ export default function useChatbot() {
         abortRef.current = null;
       }
     },
-    [apiKeyConfigured, messages],
+    [apiKeyConfigured, siteConfig.customFields],
   );
 
   const cancel = useCallback(() => {

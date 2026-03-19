@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { WEBHOOK_URL, WEBHOOK_PK, WEBHOOK_TOKEN } from '@site/src/lib/webhook';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import { getWebhookConfig } from '@site/src/lib/webhook';
 
 function extractAnswer(result) {
   if (!result) return 'No response received.';
@@ -11,6 +12,7 @@ function extractAnswer(result) {
 }
 
 export default function useSemanticSearch() {
+  const { siteConfig } = useDocusaurusContext();
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,6 +20,8 @@ export default function useSemanticSearch() {
 
   const search = useCallback(async (query) => {
     if (!query.trim()) return;
+
+    const { url, pk, token } = getWebhookConfig(siteConfig.customFields);
 
     setAnswer('');
     setError(null);
@@ -27,11 +31,11 @@ export default function useSemanticSearch() {
     abortRef.current = controller;
 
     try {
-      const response = await fetch(`${WEBHOOK_URL}?token=${WEBHOOK_TOKEN}`, {
+      const response = await fetch(`${url}?token=${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',
-          Authorization: WEBHOOK_PK,
+          Authorization: pk,
         },
         body: query.trim(),
         signal: controller.signal,
@@ -52,7 +56,7 @@ export default function useSemanticSearch() {
       setLoading(false);
       abortRef.current = null;
     }
-  }, []);
+  }, [siteConfig.customFields]);
 
   const cancel = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();

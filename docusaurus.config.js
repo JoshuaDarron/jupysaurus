@@ -21,6 +21,8 @@ const config = {
     APARAVI_API_KEY: process.env.APARAVI_API_KEY || '',
     APARAVI_BASE_URL: process.env.APARAVI_BASE_URL || 'https://eaas.aparavi.com/',
     APARAVI_URI: process.env.APARAVI_URI || 'https://eaas.aparavi.com:443',
+    WEBHOOK_PK: process.env.WEBHOOK_PK || '',
+    WEBHOOK_TOKEN: process.env.WEBHOOK_TOKEN || '',
   },
 
   i18n: {
